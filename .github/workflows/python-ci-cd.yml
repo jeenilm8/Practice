@@ -1,0 +1,50 @@
+name: Python CI-CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test Python code
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Compile Python files
+        run: python -m compileall -q .
+
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Run practice script
+        run: python practice.py
+
+      - name: Package source files
+        if: success() && github.event_name != 'pull_request'
+        run: |
+          mkdir -p dist
+          zip -r dist/practice-source.zip practice.py tests .github/workflows/python-ci-cd.yml
+
+      - name: Publish build artifact
+        if: success() && github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: practice-python-build
+          path: dist/practice-source.zip
+          if-no-files-found: error
+          retention-days: 14
